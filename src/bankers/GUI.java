@@ -37,7 +37,21 @@ public class GUI extends JFrame {
     final Dimension gameDimension = new Dimension(WIDTH, HEIGHT);
     JTable table2;
     
+    
+    int processCount=0;
+    int[][] alloc;
+    int[][] maxMatrix;
+    int[] available;
+    
     public GUI() {
+        
+        try {
+            retrieveInput();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        System.out.println("Process Count: " + processCount);
         
         JPanel panel = new JPanel();
         panel.setSize(gameDimension);        
@@ -64,7 +78,7 @@ public class GUI extends JFrame {
 
         // Create the second table
         String[] columns2 = {"Processes", "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C"};
-        Object[][] data2 = new Object[4][12];
+        Object[][] data2 = new Object[processCount][12];
         table2 = new JTable(new DefaultTableModel(data2, columns2));
         table2.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table2.setBorder(null);
@@ -104,17 +118,7 @@ public class GUI extends JFrame {
         
         table2.getTableHeader().setReorderingAllowed(false);
         table2.getTableHeader().setResizingAllowed(false);
-        
-       /* DefaultTableCellRenderer headerRenderer2 = new DefaultTableCellRenderer();
-        
-        headerRenderer2.setHorizontalAlignment(JLabel.CENTER); // Optional: Set the text alignment to center
-        headerRenderer2.setFont(headerRenderer2.getFont().deriveFont(Font.BOLD));
-        headerRenderer2.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-        JTableHeader tableHeader2 = table2.getTableHeader();
-        tableHeader2.setDefaultRenderer(headerRenderer2);
-        */
   
-
         // Add the tables to the frame with fixed sizes
         JScrollPane scrollPane0 = new JScrollPane(table0);
         scrollPane0.setPreferredSize(new Dimension(180, 30));
@@ -151,7 +155,7 @@ public class GUI extends JFrame {
         generateNeed.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
-                generateNeed(table2);
+                generateNeed(table2, available, maxMatrix, alloc, processCount, 3);
             }
             
         });
@@ -168,11 +172,9 @@ public class GUI extends JFrame {
         setVisible(true);
         setLocationRelativeTo(null);
         
-        try {
-            retrieveInput();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        
+        
+        setFileInputToTable();
     }
     public static void main(String[] args) {
         new GUI();
@@ -189,12 +191,32 @@ public class GUI extends JFrame {
         return userInput;
     }
     
-    public void retrieveInput() throws FileNotFoundException{
-        int[][] alloc = new int[3][];
-        int[][] maxMatrix = new int[3][];
-        int[] available = new int[3];
+    public void setFileInputToTable(){
+        for(int j=0; j<alloc.length; j++){
+            for(int k=0; k<3; k++){
+                table2.getModel().setValueAt(alloc[j][k], j, k+1);
+                System.out.println(alloc[j][k]);
+            }  
+        }
         
+        for(int j=0; j<maxMatrix.length; j++){
+            for(int k=0; k<3; k++){
+                table2.getModel().setValueAt(maxMatrix[j][k], j, k+4);
+                System.out.println(maxMatrix[j][k]);
+            }  
+        }
+        
+        for(int k=0; k<3; k++){
+                table2.getModel().setValueAt(available[k], 0, k+7);
+                System.out.println(available[k]);
+            } 
+        
+    }
+    
+    public void retrieveInput() throws FileNotFoundException{
   
+            
+        
             File file = new File("C:\\Users\\admin\\Desktop\\Third Year Second semester\\CMSC 125 - Operating Systems - Lab\\Bankers\\src\\bankers\\resources\\input.txt");
             Scanner scanner = new Scanner(file);
             int i = 0;           
@@ -220,88 +242,230 @@ public class GUI extends JFrame {
         
         
         System.out.println("Length: " + lines.length);
-        for(int count=0; count<3; count++){
+        processCount = userInput[0][0];
+        
+        alloc = new int[processCount][];
+        maxMatrix = new int[processCount][];
+        available = new int[processCount];
+        
+        System.out.println("Proces Count: " + processCount);
+        for(int count=0; count<processCount; count++){
             alloc[count] = userInput[count+1];
         }
-        for(int count=0; count<3; count++){
-            maxMatrix[count] = userInput[count+4];
+        for(int count=0; count<processCount; count++){
+            maxMatrix[count] = userInput[count+processCount+1];
         }
         available = userInput[userInput.length-1];
         
-        for(int j=0; j<alloc.length; j++){
-            for(int k=0; k<3; k++){
-                table2.getModel().setValueAt(alloc[j][k], j, k+1);
-                System.out.println(alloc[j][k]);
-            }  
-        }
-        
-        for(int j=0; j<maxMatrix.length; j++){
-            for(int k=0; k<3; k++){
-                table2.getModel().setValueAt(maxMatrix[j][k], j, k+4);
-                System.out.println(maxMatrix[j][k]);
-            }  
-        }
-        
-        for(int k=0; k<3; k++){
-                table2.getModel().setValueAt(available[k], 0, k+7);
-                System.out.println(available[k]);
-            } 
-        
-        
-        
     }
-    public void generateNeed(JTable table){
+    public void generateNeed(JTable table, int availableArray[], int maxArray[][], int allocationArray[][], int totalProcess, int totalResources){
         int value1;
         int value2;
-        for(int i=0; i<3; i++){
+        
+        int allocation[][] = allocationArray;
+        
+        int[][] need = new int [processCount][3];
+        for(int i=0; i<processCount; i++){
             for(int j=0; j<3; j++){
-                /*value1 = Integer.parseInt(table.getModel().getValueAt(i, j+4).toString());
-                value2 = Integer.parseInt(table.getModel().getValueAt(i, j+1).toString());
-                table.getModel().setValueAt(value1-value2, i, j+10);*/
                 
                 value1 = Integer.parseInt(table.getModel().getValueAt(i, j+4).toString());
                 value2 = Integer.parseInt(table.getModel().getValueAt(i, j+1).toString());
                 table.getModel().setValueAt(value1-value2, i, j+10);
+                need[i][j] = value1-value2;
             }
         }
-        safetyAlgo(table);
+        //safetyAlgo(table);
+        int processes[] = {1, 2, 3};
         
+        //checkSafeSystem(availableArray, maxArray, allocationArray, totalProcess, totalResources, need);
+        
+        safetyAlgo(availableArray, maxArray, allocationArray, totalProcess, totalResources, need);
+        
+    }
+    
+    public boolean checkifSafe(int need[], int work[]){
+        int i=0;
+        boolean less = true;
+        
+        while(less && i<work.length){
+            if(need[i]>work[i]){
+                less=false;
+            }
+            i++;
+        }
+        return less;
+    }
+    
+    public int[] updateWork(int work[], int alloc[]){
+            
+            for(int i=0; i<alloc.length; i++){
+                work[i] = work[i] + alloc[i];
+            }
+        
+        return work;
     }
 
-    public void safetyAlgo(JTable table){
-        int[] work = new int[3];
-        int[] need = new int[3];
-        int[] finish = {0, 0, 0};
+    public void safetyAlgo(int availableArray[], int maxArray[][], int allocationArray[][], int totalProcess, int totalResources, int needArray[][]){
         
-        for(int i=0; i<3; i++){
-            for(int j=0; j<3; j++){
-                System.out.println("Index: " + j);
-                try{
-                    work[j] = Integer.parseInt(table.getModel().getValueAt(i, j+7).toString());
-                }catch(Exception e){
-                    System.out.println("WORK");
-                }
-                
-                try{
-                    need[j] = Integer.parseInt(table.getModel().getValueAt(i, j+10).toString());
-                }catch(Exception e){
-                    System.out.println("NEED");
-                }
-                
-                
-            }
-            System.out.println("Need: \n { ");
-            for(int j=0; j<3; j++){
-                System.out.print(need[j]);
-            }
-            System.out.print("}");
-            
-            System.out.println("Work: \n { ");
-            for(int j=0; j<3; j++){
-                System.out.print(work[j]);
-            }
-            System.out.print("}");
-            
+        int work[] = availableArray;
+        int loopCount=0;
+        boolean finish[] = new boolean[totalProcess];
+        int counter=0;
+        String[] processes = new String[totalProcess];
+        String[] sequence = new String[totalProcess];
+        boolean exit=false;
+        
+        for(int i=0; i<totalProcess; i++){
+            finish[i] = false;
+            processes[i] = "P"+ i;
         }
+        
+        while(counter!=totalProcess && exit==false){
+            for(int i=0; i<totalProcess; i++){
+            
+            System.out.println("Need: ");
+            for(int j=0; j<needArray[i].length; j++){
+                System.out.print(needArray[i][j] + " ");
+            }
+            
+            System.out.println("\n\nWork: " );
+            for(int j=0; j<work.length; j++){
+                System.out.print(work[j] + " ");
+            }
+            
+            boolean isSafe = checkifSafe(needArray[i], work);
+            if(finish[i]==false && isSafe){
+                finish[i] = true;
+                updateWork(work, alloc[i]);
+                System.out.println("Work > Need: " + isSafe);
+                System.out.println("Process " + i + " is kept in safe sequence");
+                sequence[counter] = processes[i];
+                counter++;
+                System.out.println("Process: " + processes[i]);
+            }
+            else{
+                System.out.println("Work > Need: " + isSafe);
+                System.out.println("Process " + i + " is not kept in safe sequence");
+            }
+            }
+            loopCount++;
+            
+            if(loopCount>processCount){
+                exit=true;
+            }
+        }
+        exit=false;
+        
+        
+        for(int i=0; i<sequence.length; i++){
+            if(sequence[i]==null){
+                exit=true;
+                break;
+            }  
+        } 
+        
+        if(exit==true){
+            System.out.println("SAFE SEQUENCE IS NOT FOUND");
+        }else{
+            System.out.println("SAFE SEQUENCE: ");
+            for(int i=0; i<sequence.length; i++){
+                System.out.println(sequence[i] + " ");
+
+            }  
+        }
+            
+        
+         
+        
     }
+    
+        
 }
+    
+    /*
+     // create checkSafeSystem() method to determine whether the system is in safe state or not  
+    static boolean checkSafeSystem(int availableArray[], int maxArray[][], int allocationArray[][], int totalProcess, int totalResources, int needArray[][])  
+    {  
+        //int [][]needArray = new int[totalProcess][totalResources];  
+  
+        // call findNeedValue() method to calculate needArray  
+        //findNeedValue(needArray, maxArray, allocationArray, totalProcess, totalResources);  
+  
+        // all the process should be infinished in starting  
+        
+        
+        System.out.println("M: " + totalProcess + " N: "+ totalResources);
+        
+        boolean []finishProcesses = new boolean[totalProcess];  
+  
+        // initialize safeSequenceArray that store safe sequenced  
+        int []safeSequenceArray = new int[totalProcess];  
+  
+        // initialize workArray as a copy of the available resources  
+        int []workArray = new int[totalResources];  
+          
+        for (int i = 0; i < totalResources ; i++)    //use for loop to copy each available resource in the workArray  
+            workArray[i] = availableArray[i];  
+  
+        // initialize counter variable whose value will be 0 when the system is not in the safe state or when all the processes are not finished.  
+        int counter = 0;  
+          
+        // use loop to iterate the statements until all the processes are not finished  
+        while (counter < totalProcess)  
+        {  
+            // find infinished process which needs can be satisfied with the current work resource.  
+            boolean foundSafeSystem = false;  
+            for (int m = 0; m < totalProcess; m++)  
+            {  
+                System.out.println("For i= " + m + "\n Need: ");
+                for(int k=0; k<needArray[m].length; k++){
+                    System.out.print(needArray[m][k] + " ");
+                }
+                
+                System.out.println("\nWork: " );
+                for(int k=0; k<needArray[m].length; k++){
+                    System.out.print(workArray[k] + " ");
+                }
+                if (finishProcesses[m] == false)        // when process is not finished  
+                {  
+                    int j;  
+                      
+                    //use for loop to check whether the need of each process for all the resources is less than the work  
+                    for (j = 0; j < totalResources; j++)  
+                        if (needArray[m][j] > workArray[j])      //check need of current resource for current process with work  
+                            break;  
+  
+                    // the value of J and totalResources will be equal when all the needs of current process are satisfied  
+                    if (j == totalResources)  
+                    {  
+                        for (int k = 0 ; k < totalResources ; k++)  
+                            workArray[k] += allocationArray[m][k];  
+  
+                        // add current process in the safeSequenceArray  
+                        safeSequenceArray[counter++] = m;  
+  
+                        // make this process finished  
+                        finishProcesses[m] = true;  
+  
+                        foundSafeSystem = true;  
+                    }  
+                }  
+            }  
+  
+            // the system will not be in the safe state when the value of the foundSafeSystem is false  
+            if (foundSafeSystem == false)  
+            {  
+                System.out.print("The system is not in the safe state because lack of resources");  
+                return false;  
+            }  
+        }  
+  
+        // print the safe sequence  
+        System.out.print("The system is in safe sequence and the sequence is as follows: ");  
+        for (int i = 0; i < totalProcess ; i++)  
+            System.out.print("P"+safeSequenceArray[i] + " ");  
+  
+        return true;  
+    }  
+}
+*/
